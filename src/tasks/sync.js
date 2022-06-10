@@ -6,6 +6,7 @@ const path = require('path');
 const yaml = require('yaml');
 const base = require('./base');
 const logger = require('../logger');
+const {tmpdir} = require('../../configs');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 
@@ -107,16 +108,19 @@ function importFiles(files = {}) {
           source = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : source;
         }
 
+        let tmp = path.resolve(tmpdir, path.dirname(key), path.basename(source));
         let target = path.resolve(base.user.locations.plex, path.dirname(key), path.basename(source));
 
         if (fs.existsSync(target)) {
           fs.unlinkSync(target);
         }
-  
-        fs.utimesSync(source, taken, taken);
-        fs.utimesSync(origin, taken, taken);
+
+        fs.linkSync(source, tmp);
+        fs.utimesSync(tmp, taken, taken);
+
         fs.mkdirSync(path.dirname(path.resolve(base.user.locations.plex, key)), {recursive: true});
-        fs.linkSync(source, target);
+        fs.renameSync(tmp, target);
+
         files[key].mtime = taken.getTime();
         files[key].processed = new Date().getTime();
       } else {
