@@ -20,6 +20,8 @@ users.forEach(user => {
       task.init(user);
       task.exec();
     }
+
+    logger.log(_task_, `Done!`);
   } catch (error) {
     logger.error(_task_, error.message);
     return;

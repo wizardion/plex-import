@@ -97,7 +97,7 @@ function importFiles(files = {}) {
 
       if (data.TakenAt) {
         let origin = path.resolve(base.user.locations.originals, key);
-        let taken = new Date(data.TakenAt);
+        let taken = convertTZ(new Date(data.TakenAt), 'America/New_York');
         var source = origin;
   
         if (data.Type === 'image') {
@@ -107,9 +107,6 @@ function importFiles(files = {}) {
           source = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : source;
         }
 
-	      // taken.setHours(taken.getHours() - 4);
-        // console.log(yellow, 'taken', taken, '-', convertTZ(taken, 'America/New_York'));
-        taken = convertTZ(taken, 'America/New_York');
         let target = path.resolve(base.user.locations.plex, path.dirname(key), path.basename(source));
 
         if (fs.existsSync(target)) {
