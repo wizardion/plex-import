@@ -1,0 +1,7 @@
+{
+  "strict": true,
+  "laxcomma": true,
+  "esversion": 6,
+  "node": true,
+  "quotmark": "single"
+}
