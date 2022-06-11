@@ -3,23 +3,30 @@
 const fs = require('fs');
 const db = require('../db');
 const path = require('path');
-const yaml = require('yaml');
 const base = require('./base');
 const logger = require('../logger');
-const {tmpdir} = require('../../configs');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 base.name = 'scan-sync-files';
 base.exec = function exec() {
   var files = scanOriginals({old: db.init(base.user.name), new: {}, rest: {}, update: {}});
+  var newCount = Object.keys(files.new).length;
+  var updatedCount = Object.keys(files.update).length;
   
   cleanUp(files.old);
   db.save(Object.assign(files.rest));
 
-  if (Object.keys(files.new).length || Object.keys(files.update).length) {
+  if (newCount || updatedCount) {
     cleanUpUpdated(files.update);
     db.save(Object.assign(files.new, files.update), 'process.');
 
+    if (newCount) {
+      logger.log(base.name, `found new files: ${newCount}`);
+    }
+
+    if (updatedCount) {
+      logger.log(base.name, `found updated files: ${updatedCount}`);
+    }
     return true;
   }
 
@@ -38,13 +45,14 @@ function scanOriginals(dict, root='.') {
     if (file.isFile()) {
       let key = `${root}/${file.name}`;
       let item = dict.old[key];
+      let stats = loadStats(path.resolve(base.user.locations.originals, key));
 
       if (!item) {
-        return (dict.new[key] = loadStats(path.resolve(base.user.locations.originals, key)));
+        return (dict.new[key] = stats);
       }
 
-      if (isUpdated(key, item)) {
-        dict.update[key] = {mtime: null, processed: null};
+      if (!equals(new Date(item.mtime), new Date(stats.mtime))) {
+        dict.update[key] = stats;
       } else {
         dict.rest[key] = Object.assign({}, dict.old[key]);
       }
@@ -54,17 +62,6 @@ function scanOriginals(dict, root='.') {
   });
 
   return root !== '.'? null : dict;
-}
-
-function isUpdated(file, item) {
-  const filepath = path.resolve(base.user.locations.originals, file);
-  const stats = loadStats(filepath);
-
-  if (equals(new Date(item.mtime), new Date(stats.mtime), 'mtime: ' + file)) {
-    return false;
-  }
-
-  return true;
 }
 
 function loadStats(filepath) {
@@ -138,7 +135,10 @@ function cleanUp(files) {
         }
   
         let files = listFiles.filter(f => f.name.match(tester) && f.isFile());
-        files.forEach(f => fs.rmSync(path.resolve(directory, f.name)));
+        files.forEach(f => {
+          logger.log(base.name, `removing file: ${f.name}`);
+          fs.rmSync(path.resolve(directory, f.name));
+        });
         cleanEmptyDirectories(root, directory);
       }
     });
@@ -153,9 +153,9 @@ function cleanEmptyDirectories(root, pathname) {
     
     if (fs.existsSync(directory)) {
       const files = fs.readdirSync(directory).filter(f => f.match(/^[^.]/));
-      console.log(yellow, directory, files);
 
       if (!files.length) {
+        logger.log(base.name, `removing directory: ${directory}`);
         fs.rmSync(directory, {recursive: true, force: true});
       }
     }

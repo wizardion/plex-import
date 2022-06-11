@@ -60,8 +60,7 @@ function save(task, message, level='Info') {
   try {
     var info = `${task}]:[${level}`;
     var time = convertTZ(new Date(), 'America/New_York');
-    var spaces = new Array(30 - info.length).join(' ');
-    var data = `[${time.toISOString().replace(/(\.\w+z)$/gi, '')}]:[${info}]${spaces}- ${message}`;
+    var data = `[${time.toISOString().replace(/(\.\w+z)$/gi, '')}]:[${info}]: ${message}`;
 
     if (configs.logger.level === configs.logger.levels.console) {
       console.log(level !== 'Info'? yellow : '', data);

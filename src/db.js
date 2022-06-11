@@ -41,7 +41,7 @@ function saveDictionary(dictionary = {}, filename='', append=false) {
     const key = keys[i];
     const item = dictionary[key];
     
-    data.push(`${key}\t|${item.mtime}\t|${item.processed || ''}`);
+    data.push(`${key}\t|${item.mtime || ''}\t|${item.processed || ''}`);
   }
 
   try {

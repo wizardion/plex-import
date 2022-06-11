@@ -50,7 +50,6 @@ function importFiles(files = {}) {
         fs.mkdirSync(path.dirname(path.resolve(base.user.locations.plex, key)), {recursive: true});
         fs.renameSync(tmp, target);
 
-        files[key].mtime = taken.getTime();
         files[key].processed = new Date().getTime();
         result.imported++;
       } else {
