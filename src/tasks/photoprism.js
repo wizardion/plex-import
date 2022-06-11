@@ -18,6 +18,8 @@ base.exec = function() {
   }
   
   child.execSync(`docker-compose -f /home/${base.user.name}/photoprism/docker-compose.yml stop`, {stdio: 'inherit'});
+
+  return true;
 };
 
 module.exports = base.task();

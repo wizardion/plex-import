@@ -4,21 +4,20 @@ const fs = require('fs');
 const path = require('path');
 const configs = require('../configs');
 const yellow = '\x1b[33m%s\x1b[0m';
-
-const logfile = path.resolve(configs.tmpdir, 'logs.log');
+const logFile = path.resolve(configs.tmpdir, 'logs.log');
 
 function init() {
-  const exists = fs.existsSync(logfile);
-  const directory = path.dirname(logfile);
+  const exists = fs.existsSync(logFile);
+  const directory = path.dirname(logFile);
 
   if(!fs.existsSync(directory)) {
     fs.mkdirSync(directory, {recursive: true});
   }
 
-  if (!exists || (fs.existsSync(logfile) && needToUpdate(logfile))) {
-    fs.writeFileSync(logfile, '', {flag: 'w', encoding: 'utf-8'});
+  if (!exists || (fs.existsSync(logFile) && needToUpdate(logFile))) {
+    fs.writeFileSync(logFile, '', {flag: 'w', encoding: 'utf-8'});
   } else {
-    fs.writeFileSync(logfile, '\n', {flag: 'a', encoding: 'utf-8'});
+    fs.writeFileSync(logFile, '\n', {flag: 'a', encoding: 'utf-8'});
   }
 }
 
@@ -45,23 +44,30 @@ function loadStats(filepath) {
 
 function checkParameters(task, message) {
   if (!task) {
-    throw Error(`!Task name is reuired`);
+    throw Error(`!Task name is required`);
   }
 
   if (!message) {
-    throw Error(`!Message name is reuired`);
+    throw Error(`!Message name is required`);
   }
+}
+
+function convertTZ(date, tzString) {
+  return new Date((typeof date === 'string' ? new Date(date) : date).toLocaleString('en-US', {timeZone: tzString}));   
 }
 
 function save(task, message, level='Info') {
   try {
-    var data = `[${new Date().toISOString()}]:[${task}]:[${level}]\t- ${message}`;
+    var info = `${task}]:[${level}`;
+    var time = convertTZ(new Date(), 'America/New_York');
+    var spaces = new Array(30 - info.length).join(' ');
+    var data = `[${time.toISOString().replace(/(\.\w+z)$/gi, '')}]:[${info}]${spaces}- ${message}`;
 
     if (configs.logger.level === configs.logger.levels.console) {
       console.log(level !== 'Info'? yellow : '', data);
     }
 
-    fs.writeFileSync(logfile, `${data}\n`, {flag: 'a', encoding: 'utf-8'});
+    fs.writeFileSync(logFile, `${data}\n`, {flag: 'a', encoding: 'utf-8'});
   } catch (err) {
     throw Error(`there was an error writing the dict for ${task}\n ${err}`);
   }

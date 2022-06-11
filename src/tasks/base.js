@@ -31,7 +31,7 @@ function exec() {
     throw Error('User is not set!');
   }
 
-  _config_.exec();
+  return _config_.exec();
 }
 
 function task() {

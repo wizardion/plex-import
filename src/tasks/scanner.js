@@ -9,15 +9,21 @@ const logger = require('../logger');
 const {tmpdir} = require('../../configs');
 const yellow = '\x1b[33m%s\x1b[0m';
 
-
-base.name = 'sync-files';
+base.name = 'scan-sync-files';
 base.exec = function exec() {
   var files = scanOriginals({old: db.init(base.user.name), new: {}, rest: {}, update: {}});
-
-  importFiles(files.new);
-  importFiles(files.update);
+  
   cleanUp(files.old);
-  db.save(Object.assign(files.new, files.rest, files.update));
+  db.save(Object.assign(files.rest));
+
+  if (Object.keys(files.new).length || Object.keys(files.update).length) {
+    cleanUpUpdated(files.update);
+    db.save(Object.assign(files.new, files.update), 'process.');
+
+    return true;
+  }
+
+  return false;
 };
 
 function scanOriginals(dict, root='.') {
@@ -89,60 +95,26 @@ function equals(first = new Date(), second = new Date()) {
   return first.toLocaleString() === second.toLocaleString();
 }
 
-function importFiles(files = {}) {
-  Object.keys(files).forEach(key => {
-    const ymlpath = path.resolve(base.user.locations.photoprism, key.replace(path.extname(key), '.yml'));
-    
-    if (fs.existsSync(ymlpath)) {
-      let data = yaml.parse(fs.readFileSync(ymlpath, 'utf8'));
-
-      if (data.TakenAt) {
-        var source = getSourcePath(key, data.Type);
-        let tmp = path.resolve(tmpdir, path.basename(source));
-        let taken = convertTZ(new Date(data.TakenAt), 'America/New_York');
-        let target = getTargetPath(key, source);
-
-        if (fs.existsSync(target)) {
-          fs.unlinkSync(target);
-        }
-
-        fs.linkSync(source, tmp);
-        fs.utimesSync(tmp, taken, taken);
-
-        fs.mkdirSync(path.dirname(path.resolve(base.user.locations.plex, key)), {recursive: true});
-        fs.renameSync(tmp, target);
-
-        files[key].mtime = taken.getTime();
-        files[key].processed = new Date().getTime();
-      } else {
-        logger.error(base.name, `'TakenAt' is not defined for: ${key}`);
-      }
-    } else {
-      logger.error(base.name, `yml not found for: ${key}`);
-    }
-  });
-}
-
 function getTargetPath(key, source) {
   let directory = base.user.locations.plex;
   return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
 }
 
-function getSourcePath(key, type) {
-  let origin = path.resolve(base.user.locations.originals, key);
-
-  if (type === 'image') {
+function cleanUpUpdated(files) {
+  Object.keys(files).forEach(key => {
     let jpg = path.resolve(base.user.locations.photoprism, `${key}.jpg`);
     let jpeg = path.resolve(base.user.locations.photoprism, `${key}.jpeg`);
+    let photoPath = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : null;
+    let target = getTargetPath(key, photoPath || key);
 
-    return fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : origin;
-  }
+    if (photoPath) {
+      fs.rmSync(photoPath);
+    }
 
-  return origin;
-}
-
-function convertTZ(date, tzString) {
-  return new Date((typeof date === 'string' ? new Date(date) : date).toLocaleString('en-US', {timeZone: tzString}));   
+    if (fs.existsSync(target)) {
+      fs.rmSync(target);
+    }
+  });
 }
 
 function cleanUp(files) {

@@ -7,8 +7,8 @@ const configs = require('../configs');
 var _name_ = null;
 
 
-function initDictionary(name) {
-  const dbPath = path.resolve(configs.tmpdir, `./${name}.list`);
+function initDictionary(name, filename='') {
+  const dbPath = path.resolve(configs.tmpdir, `./${filename}${name}.list`);
   const dbDirectory = path.dirname(dbPath);
   var dictionary = {};
 
@@ -33,7 +33,7 @@ function initDictionary(name) {
   return dictionary;
 }
 
-function saveDictionary(dictionary = {}) {
+function saveDictionary(dictionary = {}, filename='', append=false) {
   var keys = Object.keys(dictionary);
   var data = [];
 
@@ -45,15 +45,27 @@ function saveDictionary(dictionary = {}) {
   }
 
   try {
-    fs.writeFileSync(path.resolve(configs.tmpdir, `./${_name_}.list`), data.join('\n'), {flag: 'w', encoding: 'utf-8'});
+    let filepath = path.resolve(configs.tmpdir, `./${filename}${_name_}.list`);
+
+    fs.writeFileSync(filepath, `${data.join('\n')}\n`, {flag: append? 'a':'w', encoding: 'utf-8'});
   } catch (err) {
     throw Error(`there was an error writing the dict for ${_name_}\n ${err}`);
   }
+}
 
-  _name_ = null;
+function addDictionary(dictionary = {}, filename='') {
+  saveDictionary(dictionary, filename, true);
+}
+
+function remove(name, filename='') {
+  const dbPath = path.resolve(configs.tmpdir, `./${filename}${name}.list`);
+
+  fs.rmSync(dbPath);
 }
 
 module.exports = {
   init: initDictionary,
-  save: saveDictionary
+  append: addDictionary,
+  save: saveDictionary,
+  remove: remove
 };

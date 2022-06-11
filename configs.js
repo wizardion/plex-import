@@ -13,8 +13,9 @@ const users = [
 
 const tasks = [
   'duplicates',
-  'photoprism',
-  'sync',
+  'scanner',
+  // 'photoprism',
+  'import',
 ];
 
 const logger = {

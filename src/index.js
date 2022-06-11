@@ -15,10 +15,14 @@ users.forEach(user => {
 
     for (let i = 0; i < tasks.length; i++) {
       const task = require(path.resolve(__dirname, './tasks', tasks[i]));
-    
-      logger.log(_task_, `Started task: ${task.name}`);
+  
       task.init(user);
-      task.exec();
+      logger.log(_task_, `Started task: ${task.name}`);
+
+      if (!task.exec()) {
+        logger.log(_task_, `No need to processed`);
+        return;
+      }
     }
 
     logger.log(_task_, `Done!`);

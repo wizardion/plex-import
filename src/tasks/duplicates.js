@@ -20,6 +20,7 @@ base.exec = function() {
   }
 
   renameDuplicates(duplicates);
+  return true;
 };
 
 function scanOriginals(data={}, root='.') {
