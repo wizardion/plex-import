@@ -58,7 +58,7 @@ function save(task, message, level='Info') {
     var data = `[${new Date().toISOString()}]:[${task}]:[${level}]\t- ${message}`;
 
     if (configs.logger.level === configs.logger.levels.console) {
-      console.log(data);
+      console.log(level !== 'Info'? yellow : '', data);
     }
 
     fs.writeFileSync(logfile, `${data}\n`, {flag: 'a', encoding: 'utf-8'});

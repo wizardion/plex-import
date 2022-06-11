@@ -97,19 +97,10 @@ function importFiles(files = {}) {
       let data = yaml.parse(fs.readFileSync(ymlpath, 'utf8'));
 
       if (data.TakenAt) {
-        let origin = path.resolve(base.user.locations.originals, key);
+        var source = getSourcePath(key, data.Type);
+        let tmp = path.resolve(tmpdir, path.basename(source));
         let taken = convertTZ(new Date(data.TakenAt), 'America/New_York');
-        var source = origin;
-  
-        if (data.Type === 'image') {
-          let jpg = path.resolve(base.user.locations.photoprism, `${key}.jpg`);
-          let jpeg = path.resolve(base.user.locations.photoprism, `${key}.jpeg`);
-  
-          source = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : source;
-        }
-
-        let tmp = path.resolve(tmpdir, path.dirname(key), path.basename(source));
-        let target = path.resolve(base.user.locations.plex, path.dirname(key), path.basename(source));
+        let target = getTargetPath(key, source);
 
         if (fs.existsSync(target)) {
           fs.unlinkSync(target);
@@ -130,6 +121,24 @@ function importFiles(files = {}) {
       logger.error(base.name, `yml not found for: ${key}`);
     }
   });
+}
+
+function getTargetPath(key, source) {
+  let directory = base.user.locations.plex;
+  return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
+}
+
+function getSourcePath(key, type) {
+  let origin = path.resolve(base.user.locations.originals, key);
+
+  if (type === 'image') {
+    let jpg = path.resolve(base.user.locations.photoprism, `${key}.jpg`);
+    let jpeg = path.resolve(base.user.locations.photoprism, `${key}.jpeg`);
+
+    return fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : origin;
+  }
+
+  return origin;
 }
 
 function convertTZ(date, tzString) {
@@ -168,14 +177,14 @@ function cleanEmptyDirectories(root, pathname) {
   const directories = pathname.replace(root, '').split('/').filter(d => d);
 
   while(directories.length) {
-    const dirrectory = path.resolve(root, directories.join('/'));
+    const directory = path.resolve(root, directories.join('/'));
     
-    if (fs.existsSync(dirrectory)) {
-      const files = fs.readdirSync(dirrectory).filter(f => f.match(/^[^.]/));
-      console.log(yellow, dirrectory, files);
+    if (fs.existsSync(directory)) {
+      const files = fs.readdirSync(directory).filter(f => f.match(/^[^.]/));
+      console.log(yellow, directory, files);
 
       if (!files.length) {
-        fs.rmSync(dirrectory, {recursive: true, force: true});
+        fs.rmSync(directory, {recursive: true, force: true});
       }
     }
     

@@ -23,7 +23,7 @@ users.forEach(user => {
 
     logger.log(_task_, `Done!`);
   } catch (error) {
-    logger.error(_task_, error.message);
+    logger.error(_task_, error.stack);
     return;
   }
 });  
