@@ -1,12 +1,12 @@
-const tmpdir = '/Users/alex/Projects/plex-server/dicts';
+const tmpdir = 'path.to.tmp';
 const users = [
   {
     name: 'alex',
     token: 'p5v5SftAWa6QLHjzVsUm',
     locations: {
-      originals: '/Users/alex/Projects/plex-server/tmp/orig',
-      photoprism: '/Users/alex/Projects/plex-server/tmp/sidecar',
-      plex: '/Users/alex/Projects/plex-server/tmp/plex',
+      originals: 'path.to.original.photos',
+      photoprism: 'path.to.photoprism.sidecar',
+      plex: 'path.to.plex.directory',
     }
   }
 ];
