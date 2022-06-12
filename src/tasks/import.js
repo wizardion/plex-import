@@ -16,7 +16,6 @@ base.exec = function exec() {
   var result = importFiles(files);
 
   db.append(files);
-  db.remove(base.user.name, 'process.');
 
   logger.log(base.name, `imported: ${result.imported} files; skipped: ${result.skipped} files; `);
   return true;

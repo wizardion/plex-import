@@ -10,8 +10,6 @@ function getClient(token) {
 
 	return new PlexAPI({
 		hostname: '192.168.86.100',
-		// username: 'al4273',
-		// password: '9oCrArUswudrA?A6hOsW',
     token: token,
 		options: {
 			identifier: '3310aea3-e282-4f99-adf1-69c6e17d533c',

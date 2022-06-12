@@ -7,11 +7,13 @@
     "yaml": "^2.1.1"
   },
   "devDependencies": {
-    "jshint": "^2.13.4"
+    "jshint": "^2.13.4",
+    "node-scp": "^0.0.17"
   },
   "scripts": {
     "predevstart": "npx jshint src/",
     "devstart": "node src/index.js",
+    "deploy": "node src/deploy.js",
     "start": "node src/index.js --silent",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
