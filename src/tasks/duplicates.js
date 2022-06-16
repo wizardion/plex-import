@@ -6,7 +6,7 @@ const base = require('./base');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 base.name = 'fix-duplicates';
-base.exec = function() {
+base.exec = async function() {
   const duplicates = [];
   const data = scanOriginals();
   const keys = Object.keys(data);

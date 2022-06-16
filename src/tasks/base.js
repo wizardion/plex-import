@@ -26,7 +26,7 @@ function init(user) {
   _config_.init();
 }
 
-function exec() {
+async function exec() {
   if(!_config_.user) {
     throw Error('User is not set!');
   }

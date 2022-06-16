@@ -9,52 +9,33 @@ const users = configs.users;
 const tasks = configs.tasks;
 const _task_ = 'tasks';
 
-users.forEach(user => {
-  try {
-    logger.log(_task_, `Started process for: ${user.name}`);
 
-    for (let i = 0; i < tasks.length; i++) {
-      const task = require(path.resolve(__dirname, './tasks', tasks[i]));
-  
-      task.init(user);
-      logger.log(_task_, `Started task: ${task.name}`);
+function syncMedia(){
+  return new Promise(async function(resolve){
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
 
-      if (!task.exec()) {
-        logger.log(_task_, `No need to processed`);
-        return;
+      try {
+        logger.log(_task_, `Started process for: ${user.name}`);
+
+        for (let i = 0; i < tasks.length; i++) {
+          const task = require(path.resolve(__dirname, './tasks', tasks[i]));
+      
+          task.init(user);
+          logger.log(_task_, `Started task: ${task.name}`);
+
+          if (!await task.exec()) {
+            logger.log(_task_, `No need to processed`);
+            break;
+          }
+        }
+      } catch (error) {
+        logger.error(_task_, error.stack);
       }
     }
+    
+    resolve(`Done!`);
+  });
+}
 
-    logger.log(_task_, `Done!`);
-  } catch (error) {
-    logger.error(_task_, error.stack);
-    return;
-  }
-});  
-
-
-
-
-// // const plex = require('./plex.js');
-// const exif = require('./exif');
-
-// // configs.users.forEach(user => {
-// //   plex.getBinItems(user.token).then(result => {
-// //     if (result.status === -1) {
-// //       return plex.createBin(user.token).catch(er => console.warn(er)).then(() => console.log('Created new.'));
-// //     }
-  
-// //     if (result.status === 200) {    
-// //       console.log('result', result);
-// //     }
-// //   }).catch(err => console.warn(err));
-// // });
-
-// try {
-//   // replace edited...
-//   exif.import();
-// } catch (error) {
-//   console.log('\n-------------------------------');
-//   console.error(yellow, 'ERROR', error);
-//   process.exit(-1);
-// }
+syncMedia().then(test => console.log(`\n${test}`));

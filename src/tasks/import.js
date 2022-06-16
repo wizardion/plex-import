@@ -11,7 +11,7 @@ const yellow = '\x1b[33m%s\x1b[0m';
 
 
 base.name = 'import-files';
-base.exec = function exec() {
+base.exec = async function exec() {
   var files = db.init(base.user.name, 'process.');
   var result = importFiles(files);
 

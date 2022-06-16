@@ -8,7 +8,7 @@ const logger = require('../logger');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 base.name = 'scan-sync-files';
-base.exec = function exec() {
+base.exec = async function exec() {
   var files = scanOriginals({old: db.init(base.user.name), new: {}, rest: {}, update: {}});
   var newCount = Object.keys(files.new).length;
   var updatedCount = Object.keys(files.update).length;

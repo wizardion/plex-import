@@ -8,7 +8,7 @@ const child = require('child_process');
 const base = require('./base');
 
 base.name = 'photoprism-tensor-flow';
-base.exec = function() {
+base.exec = async function() {
   try {
     child.execSync(`docker-compose -f /home/${base.user.name}/photoprism/docker-compose.yml up -d`, {stdio: 'inherit'});
     child.execSync(`docker-compose -f /home/${base.user.name}/photoprism/docker-compose.yml exec photoprism photoprism index`, {stdio: 'inherit'});
