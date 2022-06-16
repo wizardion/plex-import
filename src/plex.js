@@ -163,12 +163,13 @@ base.tagMedia = function(tags) {
   return new Promise(async (resolve, reject) => {
     try {
       for (let i = 0; i < files.length; i++) {
-        await sleep(1000);
+        await sleep(500);
         const item = await base.find(files[i]);
 
         if (item) {
-          await sleep(1000);
+          await sleep(500);
           base.update(item, tags[item.path]);
+          logger.log(__name, `tagged: ${i} - ${item.path} of total: ${files.length}`);
         } else {
           logger.error(__name, `NO FILE: ${files[i]}`);
         }

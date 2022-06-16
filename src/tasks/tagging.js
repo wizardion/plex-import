@@ -20,8 +20,12 @@ base.exec = async function exec() {
     await client.refresh(base.user.token);
     await client.wait(base.user.token);
 
-    logger.log(base.name, 'plex is ready!');
+    logger.log(base.name, 'plex is ready! Tagging media...');
     await client.tagMedia(ymls);
+
+    logger.log(base.name, 'refreshing media...');
+    await client.refresh(base.user.token);
+    await client.wait(base.user.token);
   } catch (error) {
     console.log('er', error);
     logger.error(base.name, error.stack || error);
