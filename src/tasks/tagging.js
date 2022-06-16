@@ -17,8 +17,8 @@ base.exec = async function exec() {
     var ymls = loadYmlData(files);
     var client = plex.init(base.user.token, base.user.locations.plex);
 
-    await plex.refresh(base.user.token);
-    await plex.wait(base.user.token);
+    await client.refresh(base.user.token);
+    await client.wait(base.user.token);
 
     logger.log(base.name, 'plex is ready!');
     await client.tagMedia(ymls);
