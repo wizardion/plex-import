@@ -72,7 +72,7 @@ base.refresh = function() {
         const directory = directories[i];
 
         if (directory.type === 'photo') {
-          await base.client.perform(`/library/sections/${directory.key}/refresh`);
+          await base.client.perform(`/library/sections/${directory.key}/refresh?force=1`);
         }
       }
 
