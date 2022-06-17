@@ -9,6 +9,11 @@ const users = configs.users;
 const tasks = configs.tasks;
 const _task_ = 'tasks';
 
+const env = {
+  clean: process.env.npm_config_clean === 'true'? true : false,
+  force: process.env.npm_config_force === 'true'? true : false,
+};
+
 
 function syncMedia(){
   return new Promise(async function(resolve){
@@ -16,12 +21,14 @@ function syncMedia(){
       const user = users[i];
 
       try {
-        logger.log(_task_, `Started process for: ${user.name}`);
+        user.clean = env.clean;
+        user.force = env.force;
+        logger.log(_task_, `Started process for: ${user.name}${env.force? ' - forced;' : ''}`);
 
         for (let i = 0; i < tasks.length; i++) {
           const task = require(path.resolve(__dirname, './tasks', tasks[i]));
       
-          task.init(user);
+          task.init(user, {tmp: configs.tmpdir});
           logger.log(_task_, `Started task: ${task.name}`);
 
           if (!await task.exec()) {

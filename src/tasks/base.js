@@ -9,7 +9,10 @@ const _config_ = {
       photoprism: null,
       plex: null,
       db: null,
-    }
+    },
+    clean: false,
+    force: false,
+    tmp: null
   },
   name: null,
   init: () => {},
@@ -17,12 +20,12 @@ const _config_ = {
   task: task
 };
 
-function init(user) {
+function init(user, conf) {
   if(!user) {
    throw Error('User is not set!');
   }
 
-  _config_.user = user;
+  _config_.user = Object.assign({}, user, conf);
   _config_.init();
 }
 

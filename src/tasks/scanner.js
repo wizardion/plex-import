@@ -5,6 +5,7 @@ const db = require('../db');
 const path = require('path');
 const base = require('./base');
 const logger = require('../logger');
+const plex = require('../plex');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 base.name = 'scan-sync-files';
@@ -12,11 +13,16 @@ base.exec = async function exec() {
   var files = scanOriginals({old: db.init(base.user.name), new: {}, rest: {}, update: {}});
   var newCount = Object.keys(files.new).length;
   var updatedCount = Object.keys(files.update).length;
-  
+
   cleanUp(files.old);
   db.save(Object.assign(files.rest));
 
   if (newCount || updatedCount) {
+    let client = plex.init(base.user.token, base.user.locations.plex);
+
+    await client.refresh(base.user.token);
+    await client.wait(base.user.token);
+
     cleanUpUpdated(files.update);
     db.save(Object.assign(files.new, files.update), 'process.');
 
