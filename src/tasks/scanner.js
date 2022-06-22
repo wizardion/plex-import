@@ -18,7 +18,7 @@ base.exec = async function exec() {
   db.save(Object.assign(files.rest));
 
   if (newCount || updatedCount) {
-    let client = plex.init(base.user.token, base.user.locations.plex);
+    let client = plex.init(base.user.host, base.user.token, base.user.locations.plex);
 
     await client.refresh(base.user.token);
     await client.wait(base.user.token);

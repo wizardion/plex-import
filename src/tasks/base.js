@@ -3,6 +3,7 @@
 const _config_ = {
   user: {
     name: null, 
+    host: null,
     token: null, 
     locations: {
       originals: null,

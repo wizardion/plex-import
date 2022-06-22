@@ -52,11 +52,11 @@ function importFiles(files = {}) {
         files[key].processed = new Date().getTime();
         result.imported++;
       } else {
-        logger.error(base.name, `'TakenAt' is not defined for: ${key}`);
+        logger.error(base.name, `'TakenAt' is not defined for: ${ymlpath}`);
         result.skipped++;
       }
     } else {
-      logger.error(base.name, `yml not found for: ${key}`);
+      logger.error(base.name, `yml not found: ${ymlpath}, origin: ${path.resolve(base.user.locations.originals, key)}`);
       result.skipped++;
     }
   });

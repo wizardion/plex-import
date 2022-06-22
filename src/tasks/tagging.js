@@ -15,7 +15,7 @@ base.exec = async function exec() {
   try {
     var files = db.init(base.user.name, 'process.');
     var ymls = loadYmlData(files);
-    var client = plex.init(base.user.token, base.user.locations.plex);
+    var client = plex.init(base.user.host, base.user.token, base.user.locations.plex);
 
     await client.refresh(base.user.token);
     await client.wait(base.user.token);
@@ -59,7 +59,7 @@ function loadYmlData(files) {
         tags: loadTags(data)
       };
     } else {
-      logger.error(base.name, `yml not found for: ${key}`);
+      logger.error(base.name, `yml not found: ${ymlpath}, origin: ${path.resolve(base.user.locations.originals, key)}`);
     }
   });
 

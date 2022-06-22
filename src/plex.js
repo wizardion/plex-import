@@ -1,7 +1,6 @@
 'use strict';
 
 const PlexAPI = require('plex-api');
-const configs = require('../configs');
 const logger = require('./logger');
 
 const yellow = '\x1b[33m%s\x1b[0m';
@@ -21,9 +20,9 @@ function sleep(ms) {
   });
 }
 
-function getClient(token) {
+function getClient(host, token) {
   return new PlexAPI({
-		hostname: configs.plex.host,
+		hostname: host,
     token: token,
 		options: {
 			identifier: '3310aea3-e282-4f99-adf1-69c6e17d533c',
@@ -73,6 +72,10 @@ base.refresh = function() {
 
         if (directory.type === 'photo') {
           await base.client.perform(`/library/sections/${directory.key}/refresh?force=1`);
+          await base.wait();
+          await base.client.perform(`/library/sections/${directory.key}/emptyTrash`);
+          await base.client.perform(`/library/optimize`);
+          await base.client.perform(`/library/clean/bundles?async=1`);
         }
       }
 
@@ -157,8 +160,9 @@ base.find = function(filepath) {
 };
 
 base.tagMedia = function(tags) {
-  const files = Object.keys(tags).map(k => tags[k].target);
-  // const files = ['/home/alex/pictures/IMG_4106.jpeg'];
+  // const files = Object.keys(tags).map(k => tags[k].target);
+  // const files = Object.keys(tags).map(k => tags[k].target.replace('/home/alex/pictures/', ''));
+  const files = ['/pictures/IMG_4665.jpeg'];
 
   return new Promise(async (resolve, reject) => {
     try {
@@ -195,11 +199,10 @@ return d.getFullYear().toString()+'-' +
 base.update = function(file, media) {
   return new Promise(async (resolve, reject) => {
     try {
-      var client = getClient(configs.plex.rootToken);
       var params = `type=${__types[file.type]}&id=${file.id}&summary.value=${media.title}&includeExternalMedia=1`;
       params += `&originallyAvailableAt.value=${formateDate(media.taken)}&originallyAvailableAt.locked=1`;
 
-      await client.putQuery(encodeURI(`/library/sections/${file.section.key}/all?${params}`));
+      await base.client.putQuery(encodeURI(`/library/sections/${file.section.key}/all?${params}`));
       await sleep(100);
 
       params = `type=${__types[file.type]}&id=${file.id}`;
@@ -210,7 +213,7 @@ base.update = function(file, media) {
         params += `&tag[${i}].tag.tag=${tag}`;
       }
 
-      await client.putQuery(encodeURI(`/library/sections/${file.section.key}/all?${params}`));
+      await base.client.putQuery(encodeURI(`/library/sections/${file.section.key}/all?${params}`));
       resolve();
     } catch (error) {
       reject(error);
@@ -218,13 +221,13 @@ base.update = function(file, media) {
   });
 };
 
-function init(token, plexpath) {
+function init(host, token, plexpath) {
   if (!token) {
     throw Error('Token is required!');
   }
 
   base.path = plexpath;
-  base.client = getClient(token);
+  base.client = getClient(host, token);
   return base;
 }
 // -----------------------------------------------

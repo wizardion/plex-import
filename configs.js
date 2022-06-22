@@ -1,21 +1,28 @@
-const tmpdir = 'path.to.tmp';
+const tmpdir = '/Users/alex/Projects/plex-server/dicts';
 const users = [
   {
     name: 'alex',
-    token: 'p5v5SftAWa6QLHjzVsUm',
+    username: 'alex@zarnitsa.net',
+    host: '192.168.86.100',
+    token: 'yxCZPBgvRTBrLLpeJXYA',
     locations: {
-      originals: 'path.to.original.photos',
-      photoprism: 'path.to.photoprism.sidecar',
-      plex: 'path.to.plex.directory',
-    }
+      originals: '/Users/alex/Projects/plex-server/tmp/orig',
+      photoprism: '/Users/alex/Projects/plex-server/tmp/sidecar',
+      plex: '/Users/alex/Projects/plex-server/tmp/plex',
+    },
+    clean: false,
+    force: false,
   }
 ];
 
 const tasks = [
-  'duplicates',
+  'cleaner',
+  // 'duplicates',
   'scanner',
   // 'photoprism',
-  'import',
+  // 'import',
+  'tagging',
+  // 'finish',
 ];
 
 const logger = {

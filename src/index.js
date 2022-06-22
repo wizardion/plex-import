@@ -10,8 +10,8 @@ const tasks = configs.tasks;
 const _task_ = 'tasks';
 
 const env = {
-  clean: process.env.npm_config_clean === 'true'? true : false,
-  force: process.env.npm_config_force === 'true'? true : false,
+  clean: process.env.npm_config_clean === 'all'? true : false,
+  force: process.env.npm_config_clean === 'plex' || process.env.npm_config_clean === 'all'? true : false,
 };
 
 

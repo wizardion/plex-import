@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const base = require('./base');
 
-base.name = 'scan-sync-files';
+base.name = 'clean-files';
 base.exec = async function exec() {
   if (base.user.force) {
     let dbpath = path.resolve(base.user.tmp, `./${base.user.name}.list`);
