@@ -18,7 +18,7 @@ base.exec = async function exec() {
   db.save(Object.assign(files.rest));
 
   if (newCount || updatedCount) {
-    let client = plex.init(base.user.host, base.user.token, base.user.locations.plex);
+    let client = plex.init(base.user.host, base.user.token, base.user.locations.plex.host);
 
     await client.refresh(base.user.token);
     await client.wait(base.user.token);
@@ -99,7 +99,7 @@ function equals(first = new Date(), second = new Date()) {
 }
 
 function getTargetPath(key, source) {
-  let directory = base.user.locations.plex;
+  let directory = base.user.locations.plex.host;
   return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
 }
 
@@ -127,7 +127,7 @@ function cleanUp(files) {
     const ext = path.extname(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const basename = path.basename(key, path.extname(key)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const tester = new RegExp(`${basename + (ext? `(${ext})?` : '')}(\\.[a-zA-Z]{2,6})?$`, 'gi');
-    const locations = [base.user.locations.photoprism, base.user.locations.plex];
+    const locations = [base.user.locations.photoprism, base.user.locations.plex.host];
 
     locations.forEach(root => {
       const directory = path.dirname(path.resolve(root, key));

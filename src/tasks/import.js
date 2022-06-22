@@ -46,7 +46,7 @@ function importFiles(files = {}) {
         fs.linkSync(source, tmp);
         fs.utimesSync(tmp, taken, taken);
 
-        fs.mkdirSync(path.dirname(path.resolve(base.user.locations.plex, key)), {recursive: true});
+        fs.mkdirSync(path.dirname(path.resolve(base.user.locations.plex.host, key)), {recursive: true});
         fs.renameSync(tmp, target);
 
         files[key].processed = new Date().getTime();
@@ -65,7 +65,7 @@ function importFiles(files = {}) {
 }
 
 function getTargetPath(key, source) {
-  let directory = base.user.locations.plex;
+  let directory = base.user.locations.plex.host;
   return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
 }
 

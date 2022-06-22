@@ -1,6 +1,7 @@
 'use strict';
 
 const PlexAPI = require('plex-api');
+const path = require('path');
 const logger = require('./logger');
 
 const yellow = '\x1b[33m%s\x1b[0m';
@@ -160,9 +161,7 @@ base.find = function(filepath) {
 };
 
 base.tagMedia = function(tags) {
-  // const files = Object.keys(tags).map(k => tags[k].target);
-  // const files = Object.keys(tags).map(k => tags[k].target.replace('/home/alex/pictures/', ''));
-  const files = ['/pictures/IMG_4665.jpeg'];
+  const files = Object.keys(tags).map(k => path.resolve(base.path, k));
 
   return new Promise(async (resolve, reject) => {
     try {
@@ -172,7 +171,7 @@ base.tagMedia = function(tags) {
 
         if (item) {
           await sleep(500);
-          base.update(item, tags[item.path]);
+          await base.update(item, tags[item.path]);
           logger.log(__name, `tagged: ${i} - ${item.path} of total: ${files.length}`);
         } else {
           logger.error(__name, `NO FILE: ${files[i]}`);
@@ -181,6 +180,7 @@ base.tagMedia = function(tags) {
 
       resolve();
     } catch (error) {
+      console.log('er', error);
       reject(error);
     }
   });

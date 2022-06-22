@@ -10,7 +10,7 @@ base.exec = async function exec() {
     let dbpath = path.resolve(base.user.tmp, `./${base.user.name}.list`);
     let processpath = path.resolve(base.user.tmp, `./process.${base.user.name}.list`);
 
-    cleanUpDirectory(base.user.locations.plex);
+    cleanUpDirectory(base.user.locations.plex.host);
 
     if (fs.existsSync(dbpath)) {
       fs.rmSync(dbpath);

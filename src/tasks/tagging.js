@@ -15,7 +15,7 @@ base.exec = async function exec() {
   try {
     var files = db.init(base.user.name, 'process.');
     var ymls = loadYmlData(files);
-    var client = plex.init(base.user.host, base.user.token, base.user.locations.plex);
+    var client = plex.init(base.user.host, base.user.token, base.user.locations.plex.container);
 
     await client.refresh(base.user.token);
     await client.wait(base.user.token);
@@ -43,7 +43,7 @@ function loadYmlData(files) {
       const data = yaml.parse(fs.readFileSync(ymlpath, 'utf8'));
       const taken = convertTZ(new Date(data.TakenAt), 'America/New_York');
       const target = getTargetPath(key, getSourcePath(key, data.Type));
-      const basename = target.replace(base.user.locations.plex, '.');
+      const basename = target.replace(base.user.locations.plex.host, '.');
 
       ymlData[basename] = {
         taken: taken,
@@ -67,7 +67,7 @@ function loadYmlData(files) {
 }
 
 function getTargetPath(key, source) {
-  let directory = base.user.locations.plex;
+  let directory = base.user.locations.plex.host;
   return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
 }
 

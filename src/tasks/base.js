@@ -8,7 +8,7 @@ const _config_ = {
     locations: {
       originals: null,
       photoprism: null,
-      plex: null,
+      plex: {host: null,container: null},
       db: null,
     },
     clean: false,
