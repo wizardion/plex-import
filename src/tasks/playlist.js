@@ -35,10 +35,12 @@ base.exec = async function exec() {
     if (data) {
       if (file.type === 'image') {
         await client.addToPlayList(photos.ratingKey, data.key);
+        logger.log(base.name, `added photo: ${i} - ${file.target} of total: ${files.length}`);
       }
   
       if (file.type === 'video') {
         await client.addToPlayList(videos.ratingKey, data.key);
+        logger.log(base.name, `added video: ${i} - ${file.target} of total: ${files.length}`);
       }
     } else {
       logger.error(base.name, `file not found: ${file.target}`);
