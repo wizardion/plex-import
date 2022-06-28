@@ -6,45 +6,59 @@ const path = require('path');
 const yaml = require('yaml');
 const base = require('./base');
 const plex = require('../plex');
-const yellow = '\x1b[33m%s\x1b[0m';
 const logger = require('../logger');
 
 
-base.name = 'tagging';
+base.name = 'playlist';
 base.exec = async function exec() {
-  try {
-    var files = db.init(base.user.locations.tmp, 'process');
-    var ymls = loadYmlData(files);
-    var client = plex.init(base.user.host, base.user.token, base.user.locations.plex.container);
+  const files = loadYmlData(db.init(base.user.locations.tmp, 'process'));
+  const client = plex.init(base.user.host, base.user.token, base.user.locations.plex.container);
 
-    await client.refresh(base.user.token);
-    await client.wait(base.user.token);
+  const playlists = await client.getPlayLists();
+  var photos = playlists.find(p => p.title === 'Photos');
+  var videos = playlists.find(p => p.title === 'Videos');
 
-    logger.log(base.name, 'plex is ready! Tagging media...');
-    await client.tagMedia(ymls);
-    await client.wait(base.user.token);
-  } catch (error) {
-    console.log('er', error);
-    logger.error(base.name, error.stack || error);
+  if (!photos) {
+    photos = await client.createPlayList('Photos', 'All your photos are in here.');
+  }
+
+  if (!videos) {
+    videos = await client.createPlayList('Videos', 'All your photos are in here.');
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const data = await client.find(file.target);
+    
+    await sleep(500);
+
+    if (data) {
+      if (file.type === 'image') {
+        await client.addToPlayList(photos.ratingKey, data.key);
+      }
+  
+      if (file.type === 'video') {
+        await client.addToPlayList(videos.ratingKey, data.key);
+      }
+    } else {
+      logger.error(base.name, `file not found: ${file.target}`);
+    }
   }
 
   return true;
 };
 
 function loadYmlData(files) {
-  const ymlData = {};
+  const ymlData = [];
 
   Object.keys(files).forEach(key => {
     const ymlpath = path.resolve(base.user.locations.photoprism, key.replace(path.extname(key), '.yml'));
 
     if (!files[key].processed && fs.existsSync(ymlpath)) {
       const data = yaml.parse(fs.readFileSync(ymlpath, 'utf8'));
-      const taken = convertTZ(new Date(data.TakenAt), 'America/New_York');
       const target = getTargetPath(key, getSourcePath(key, data.Type));
-      const basename = target.replace(base.user.locations.plex.host, '.');
 
-      ymlData[basename] = {
-        taken: taken,
+      ymlData.push({
         type: data.Type,
         title: data.Title,
         target: target,
@@ -54,8 +68,7 @@ function loadYmlData(files) {
           lat: data.Lat,
           lng: data.Lng,
         },
-        tags: loadTags(data)
-      };
+      });
     } else {
       logger.error(base.name, `yml not found: ${ymlpath}, origin: ${path.resolve(base.user.locations.originals, key)}`);
     }
@@ -65,7 +78,7 @@ function loadYmlData(files) {
 }
 
 function getTargetPath(key, source) {
-  let directory = base.user.locations.plex.host;
+  let directory = base.user.locations.plex.container;
   return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
 }
 
@@ -82,17 +95,10 @@ function getSourcePath(key, type) {
   return origin;
 }
 
-function loadTags(data) {
-  const tags = (data.Details && data.Details.Keywords || '').split(',').map(t => t.trim());
-  const dict = {};
-
-  tags.forEach(tag => dict[tag] = true);
-
-  return Object.keys(dict);
-}
-
-function convertTZ(date, tzString) {
-  return new Date((typeof date === 'string' ? new Date(date) : date).toLocaleString('en-US', {timeZone: tzString}));   
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 module.exports = base.task();

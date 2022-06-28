@@ -5,26 +5,30 @@ const db = require('../db');
 const path = require('path');
 const base = require('./base');
 const logger = require('../logger');
-const plex = require('../plex');
 const yellow = '\x1b[33m%s\x1b[0m';
 
-base.name = 'scan-sync-files';
-base.exec = async function exec() {
-  var files = scanOriginals({old: db.init(base.user.name), new: {}, rest: {}, update: {}});
-  var newCount = Object.keys(files.new).length;
-  var updatedCount = Object.keys(files.update).length;
 
-  cleanUp(files.old);
-  db.save(Object.assign(files.rest));
+base.name = 'origin-scan';
+base.exec = async function exec() {
+  const data = db.init(base.user.locations.tmp);
+  const originals = scanDirectory(base.user.locations.originals, {old: data, new: {}, rest: {}, update: {}});
+  const newCount = Object.keys(originals.new).length;
+  const updatedCount = Object.keys(originals.update).length;
+  const lostCount = Object.keys(originals.update).length;
+  var result = false;
+
+  db.save(Object.assign(originals.rest));
+
+  if (lostCount) {
+    db.save(originals.old, 'lost');
+
+    logger.log(base.name, `found lost files: ${lostCount}`);
+    result = true;
+  }
 
   if (newCount || updatedCount) {
-    let client = plex.init(base.user.host, base.user.token, base.user.locations.plex.host);
-
-    await client.refresh(base.user.token);
-    await client.wait(base.user.token);
-
-    cleanUpUpdated(files.update);
-    db.save(Object.assign(files.new, files.update), 'process.');
+    cleanUpUpdated(originals.update);
+    db.save(Object.assign(originals.new, originals.update), 'process');
 
     if (newCount) {
       logger.log(base.name, `found new files: ${newCount}`);
@@ -33,19 +37,21 @@ base.exec = async function exec() {
     if (updatedCount) {
       logger.log(base.name, `found updated files: ${updatedCount}`);
     }
-    return true;
+
+    await refreshPlex();
+    result = true;
   }
 
-  return false;
+  return result;
 };
 
-function scanOriginals(dict, root='.') {
-  const dirname = path.resolve(base.user.locations.originals, root);
+function scanDirectory(location, dict, root='.') {
+  const dirname = path.resolve(location, root);
   const files = fs.readdirSync(dirname, {withFileTypes: true}).filter(f => f.name.match(/^[^.]/));
 
   files.forEach(file => {
     if (file.isDirectory()) {
-      return scanOriginals(dict, `${root}/${file.name}`);
+      return scanDirectory(location, dict, `${root}/${file.name}`);
     }
 
     if (file.isFile()) {
@@ -107,11 +113,11 @@ function cleanUpUpdated(files) {
   Object.keys(files).forEach(key => {
     let jpg = path.resolve(base.user.locations.photoprism, `${key}.jpg`);
     let jpeg = path.resolve(base.user.locations.photoprism, `${key}.jpeg`);
-    let photoPath = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : null;
-    let target = getTargetPath(key, photoPath || key);
+    let source = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : null;
+    let target = getTargetPath(key, source || key);
 
-    if (photoPath) {
-      fs.rmSync(photoPath);
+    if (source) {
+      fs.rmSync(source);
     }
 
     if (fs.existsSync(target)) {
@@ -120,54 +126,11 @@ function cleanUpUpdated(files) {
   });
 }
 
-function cleanUp(files) {
-  const dict = {};
+async function refreshPlex() {
+  // let client = plex.init(base.user.host, base.user.token, base.user.locations.plex.host);
 
-  Object.keys(files).forEach(key => {
-    const ext = path.extname(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const basename = path.basename(key, path.extname(key)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const tester = new RegExp(`${basename + (ext? `(${ext})?` : '')}(\\.[a-zA-Z]{2,6})?$`, 'gi');
-    const locations = [base.user.locations.photoprism, base.user.locations.plex.host];
-
-    locations.forEach(root => {
-      const directory = path.dirname(path.resolve(root, key));
-
-      if(fs.existsSync(directory)) {
-        let listFiles = dict[directory];
-        
-        if (listFiles === null || listFiles === undefined) {
-          listFiles = fs.readdirSync(directory, {withFileTypes: true});
-          dict[directory] = listFiles;
-        }
-  
-        let files = listFiles.filter(f => f.name.match(tester) && f.isFile());
-        files.forEach(f => {
-          logger.log(base.name, `removing file: ${f.name}`);
-          fs.rmSync(path.resolve(directory, f.name));
-        });
-        cleanEmptyDirectories(root, directory);
-      }
-    });
-  });
-}
-
-function cleanEmptyDirectories(root, pathname) {
-  const directories = pathname.replace(root, '').split('/').filter(d => d);
-
-  while(directories.length) {
-    const directory = path.resolve(root, directories.join('/'));
-    
-    if (fs.existsSync(directory)) {
-      const files = fs.readdirSync(directory).filter(f => f.match(/^[^.]/));
-
-      if (!files.length) {
-        logger.log(base.name, `removing directory: ${directory}`);
-        fs.rmSync(directory, {recursive: true, force: true});
-      }
-    }
-    
-    directories.pop();
-  }
+  // await client.refresh(base.user.token);
+  // await client.wait(base.user.token);
 }
 
 module.exports = base.task();

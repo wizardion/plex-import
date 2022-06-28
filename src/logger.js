@@ -4,9 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const configs = require('../configs');
 const yellow = '\x1b[33m%s\x1b[0m';
-const logFile = path.resolve(configs.tmpdir, 'logs.log');
+var logFile = null;
 
-function init() {
+function init(tmpdir) {
+  logFile = logFile || path.resolve(tmpdir, 'logs.log');
   const exists = fs.existsSync(logFile);
   const directory = path.dirname(logFile);
 
@@ -82,9 +83,8 @@ function error(task, message) {
   save(task, message, 'Error');
 }
 
-init();
-
 module.exports = {
+  init: init,
   log: log,
   error: error
 };

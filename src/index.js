@@ -6,7 +6,7 @@ const logger = require('./logger');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 const users = configs.users;
-const tasks = configs.tasks;
+const tasks = configs.sync;
 const _task_ = 'tasks';
 
 const env = {
@@ -15,29 +15,33 @@ const env = {
 };
 
 
-function syncMedia(){
+function syncMedia() {
   return new Promise(async function(resolve){
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
+      const results = {};
+
+      user.force.plex = env.force;
+      user.force.prism = env.clean;
 
       try {
-        user.clean = env.clean;
-        user.force = env.force;
+        logger.init(user.locations.tmp);
         logger.log(_task_, `Started process for: ${user.name}${env.force? ' - forced;' : ''}`);
 
         for (let i = 0; i < tasks.length; i++) {
-          const task = require(path.resolve(__dirname, './tasks', tasks[i]));
-      
-          task.init(user, {tmp: configs.tmpdir});
-          logger.log(_task_, `Started task: ${task.name}`);
+          const item = tasks[i];
 
-          if (!await task.exec()) {
-            logger.log(_task_, `No need to processed`);
-            break;
+          if (!item.depends || (item.depends instanceof(Array)? item.depends.find(i => results[i]) : results[item.depends])) {            
+            const task = require(path.resolve(__dirname, './tasks', item.name));
+      
+            task.init(user, {tmp: configs.tmpdir});
+            logger.log(_task_, `Started task: ${task.name}`);
+
+            results[item.name] = await task.exec();
           }
         }
       } catch (error) {
-        logger.error(_task_, error.stack);
+        logger.error(_task_, error && error.stack || error && error.message || error || 'Unknown error');
       }
     }
     

@@ -6,17 +6,15 @@ const path = require('path');
 const yaml = require('yaml');
 const base = require('./base');
 const logger = require('../logger');
-const {tmpdir} = require('../../configs');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 
 base.name = 'import-files';
 base.exec = async function exec() {
-  var files = db.init(base.user.name, 'process.');
+  var files = db.init(base.user.locations.tmp, 'process');
   var result = importFiles(files);
 
   db.append(files);
-
   logger.log(base.name, `imported: ${result.imported} files; skipped: ${result.skipped} files; `);
   return true;
 };
@@ -35,7 +33,7 @@ function importFiles(files = {}) {
 
       if (data.TakenAt) {
         var source = getSourcePath(key, data.Type);
-        let tmp = path.resolve(tmpdir, path.basename(source));
+        let tmp = path.resolve(base.user.locations.tmp, path.basename(source));
         let taken = convertTZ(new Date(data.TakenAt), 'America/New_York');
         let target = getTargetPath(key, source);
 
@@ -50,6 +48,7 @@ function importFiles(files = {}) {
         fs.renameSync(tmp, target);
 
         files[key].processed = new Date().getTime();
+        files[key].target = path.basename(target);
         result.imported++;
       } else {
         logger.error(base.name, `'TakenAt' is not defined for: ${ymlpath}`);

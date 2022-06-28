@@ -1,41 +1,78 @@
 'use strict';
 
 const fs = require('fs');
+const db = require('../db');
 const path = require('path');
 const base = require('./base');
+const logger = require('../logger');
+const yellow = '\x1b[33m%s\x1b[0m';
+
 
 base.name = 'clean-files';
 base.exec = async function exec() {
-  if (base.user.force) {
-    let dbpath = path.resolve(base.user.tmp, `./${base.user.name}.list`);
-    let processpath = path.resolve(base.user.tmp, `./process.${base.user.name}.list`);
+  const data = [
+    {file: 'plex-lost', locations: [base.user.locations.originals, base.user.locations.photoprism]},
+    {file: 'lost', locations: [base.user.locations.photoprism, base.user.locations.plex.host]},
+  ];
 
-    cleanUpDirectory(base.user.locations.plex.host);
+  data.forEach(item => {
+    if (fs.existsSync(path.resolve(base.user.locations.tmp, item.file))) {
+      const lost = db.init(base.user.locations.tmp, item.file);
 
-    if (fs.existsSync(dbpath)) {
-      fs.rmSync(dbpath);
+      cleanUp(lost, item.locations);
     }
-    
-    if (fs.existsSync(processpath)) {
-      fs.rmSync(processpath);
-    }
-  }
+  });
 
   return true;
 };
 
-function cleanUpDirectory(directory) {
-  const files = fs.readdirSync(directory, {withFileTypes: true});
+function cleanUp(files, locations) {
+  const dict = {};
 
-  files.forEach(f => {
-    const pathname = path.resolve(directory, f.name);
+  Object.keys(files).forEach(key => {
+    const ext = path.extname(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const basename = path.basename(key, path.extname(key)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const tester = new RegExp(`${basename + (ext? `(${ext})?` : '')}(\\.[a-zA-Z]{2,6})?$`, 'gi');
 
-    if (f.isDirectory()) {
-      fs.rmSync(pathname, { recursive: true, force: true });
-    } else {
-      fs.rmSync(pathname);
-    }
+    locations.forEach(root => {
+      const directory = path.dirname(path.resolve(root, key));
+
+      if(fs.existsSync(directory)) {
+        let listFiles = dict[directory];
+        
+        if (listFiles === null || listFiles === undefined) {
+          listFiles = fs.readdirSync(directory, {withFileTypes: true});
+          dict[directory] = listFiles;
+        }
+
+        // TODO make sure it will not delete life bundles
+        listFiles.filter(f => f.name.match(tester) && f.isFile()).forEach(f => {
+          logger.log(base.name, `removing file: ${f.name}`);
+          fs.rmSync(path.resolve(directory, f.name));
+        });
+        cleanEmptyDirectories(root, directory);
+      }
+    });
   });
+}
+
+function cleanEmptyDirectories(root, pathname) {
+  const directories = pathname.replace(root, '').split('/').filter(d => d);
+
+  while(directories.length) {
+    const directory = path.resolve(root, directories.join('/'));
+    
+    if (fs.existsSync(directory)) {
+      const files = fs.readdirSync(directory).filter(f => f.match(/^[^.]/));
+
+      if (!files.length) {
+        logger.log(base.name, `removing directory: ${directory}`);
+        fs.rmSync(directory, {recursive: true, force: true});
+      }
+    }
+    
+    directories.pop();
+  }
 }
 
 module.exports = base.task();

@@ -6,14 +6,15 @@ const _config_ = {
     host: null,
     token: null, 
     locations: {
+      tmp: null,
       originals: null,
       photoprism: null,
       plex: {host: null,container: null},
-      db: null,
     },
-    clean: false,
-    force: false,
-    tmp: null
+    force: {
+      plex: false,
+      prism: false,
+    },
   },
   name: null,
   init: () => {},
