@@ -29,6 +29,7 @@ base.exec = async function exec() {
 
       if (data) {
         await client.update(data, item);
+        item.key = data.id;
         logger.log(base.name, `tagged media: ${i} of ${keys.length}: ${item.target}`);
       } else {
         logger.error(base.name, `file not found: ${item.target}`);
@@ -38,6 +39,7 @@ base.exec = async function exec() {
     }
   }
 
+  db.saveDB(session, 'session');
   return true;
 };
 

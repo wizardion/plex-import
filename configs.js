@@ -55,7 +55,7 @@ const sync = [
     {name: 'plex-backups', depends: 'forcer'},                // backups all media from plex to restore => tmp/plex-bk.list
     {name: 'plex-restore', depends: 'forcer'},                // restores media from tmp/plex-bk.list to plex
     // {name: 'duplicates'},                                     // searches form duplicated names in files and renames them
-  // {name: 'plex-scan'},                                      // scans plex files, stores {lost} files => tmp/plex-lost.list
+  {name: 'plex-scan'},                                      // scans plex files, stores {lost} files => tmp/plex-lost.list
     {name: 'scan-origin'},                                    // scans original folder, stores {new,updated} data => tmp/process.list, {lost} => tmp/lost.list
     // {name: 'cleaner', depends: ['plex-scan', 'scan-origin']}, // clean original/photoprism files from tmp/plex-lost.list, tmp/lost.list
     // {name: 'photoprism-start', depends: 'scan-origin'},          // starts photoprism for tensor flow scanning

@@ -29,19 +29,20 @@ function loadDB(dirname, filename='data') {
       return ({[f[0]]: {
         id: f[1],
         taken: f[2]? new Date(f[2]) : null,
-        target: f[3] || null,
-        type: f[4] || null,
-        processed: f[5]? new Date(f[5]) : null,
-        title: f[6] || null,
-        favorite: f[7]? true : false,
+        key: f[3] || null,
+        target: f[4] || null,
+        type: f[5] || null,
+        processed: f[6]? new Date(f[6]) : null,
+        title: f[7] || null,
+        favorite: f[8]? true : false,
         source: {
-          type: f[8]? parseInt(f[8]) : null,
-          path: f[9] || null
+          type: f[9]? parseInt(f[9]) : null,
+          path: f[10] || null
         },
-        files: f[10]? f[10].split(',') : null,
-        tags: f[11]? f[11].split(',') : null,
+        files: f[11]? f[11].split(',') : null,
+        tags: f[12]? f[12].split(',') : null,
         location: {
-          tz: f[12] || null,
+          tz: f[13] || null,
         }
       }});
     });
@@ -63,6 +64,7 @@ function saveDB(dictionary, filename='data', append=false) {
     const item = dictionary[key];
     var row = `${key}\t|${item.id || ''}` + 
                 `\t|${item.taken? new Date(item.taken).toISOString() : ''}` +
+                `\t|${item.key || ''}` +
                 `\t|${item.target || ''}` +
                 `\t|${item.type || ''}` +
                 `\t|${item.processed? new Date(item.processed).toISOString() : ''}` +

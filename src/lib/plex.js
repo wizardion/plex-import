@@ -207,6 +207,16 @@ const base = {
       }
     });
   },
+  get: (key) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const response = await base.client.query(`/library/metadata/${key}`);
+        resolve((response && response.MediaContainer && response.MediaContainer.Metadata || []).shift());
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
   find: (filepath) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -231,8 +241,7 @@ const base = {
   
                 if (filepath === container.file) {
                   await sleep(50);
-                  const r = await base.client.query(`/library/metadata/${data.ratingKey}`);
-                  const details = (r && r.MediaContainer && r.MediaContainer.Metadata || []).shift();
+                  const details = await base.get(data.ratingKey);
   
                   return resolve({
                     id: data.ratingKey,

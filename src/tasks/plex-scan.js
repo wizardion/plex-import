@@ -1,66 +1,70 @@
 'use strict';
 
 const fs = require('fs');
-const db = require('../db');
+const db = require('../lib/db');
 const path = require('path');
 const base = require('./base');
-const logger = require('../logger');
+const plex = require('../lib/plex');
 const yellow = '\x1b[33m%s\x1b[0m';
 
 
 base.name = 'plex-scan';
 base.exec = async function exec() {
-  const data = db.init(base.user.locations.tmp);
+  const data = db.loadDB(base.user.locations.tmp);
+  const client = plex.init(base.user.host, base.user.token, base.user.locations.plex.container);
+  const keys = Object.keys(data);
+  const lost = [];
+  var changed = false;
 
-  if (Object.keys(data).length) {
-    const scanned = scanPlex(base.user.locations.plex.host, {new: {}, lost: data});
+  for (let i = 0; i < keys.length; i++) {
+    const item = data[keys[i]];
+    const target = path.resolve(base.user.locations.plex.host, item.target);
+    
+    if (fs.existsSync(target)) {
+      let details = getMediaDetails(await client.get(item.key));
+      
+      if (!changed && 
+          (item.title !== details.title || item.favorite !== details.favorite || !equal(item.tags, details.tags))) {
+        changed = true;
+      }
 
-    if (Object.keys(scanned.lost).length) {
-      db.save(scanned.lost, 'plex-lost');
-      return true;
+      await sleep(100);
+      item.title = details.title;
+      item.favorite = details.favorite;
+      item.tags = details.tags;
+    } else {
+      lost.push(item);
     }
   }
   
+  if (lost.length) {
+    db.saveDB(lost, 'lost');
+  }
+
+  if (changed) {
+    console.log('changed', changed);
+    db.saveDB(data);
+  }
+
   return false;
 };
 
-function scanPlex(location, dict, root='.') {
-  const dirname = path.resolve(location, root);
-  const files = fs.readdirSync(dirname, {withFileTypes: true}).filter(f => f.name.match(/^[^.]/));
-
-  files.forEach(file => {
-    if (file.isDirectory()) {
-      return scanPlex(location, dict, `${root}/${file.name}`);
-    }
-
-    if (file.isFile()) {
-      let key = getSource(dict.lost, root, file.name);
-      let item = dict.lost[key];
-
-      if (!item) {
-        dict.new[key] = Object.assign({}, dict.lost[key]);
-      }
-
-      delete dict.lost[key];
-    }
-  });
-
-  return root !== '.'? null : dict;
+function getMediaDetails(media) {
+  return {
+    title: media.summary,
+    favorite: (media.userRating? true : false),
+    tags: (media.Tag && media.Tag.length? media.Tag.map(t => t.tag) : null),
+  };
 }
 
-function getSource(dict, root, name) {
-  var key = Object.keys(dict).find(k => {
-    var dirname = path.dirname(k);
+function equal(first, second) {
+  return first.sort().join('').toLowerCase() === second.sort().join('').toLowerCase();
+}
 
-    if (dirname == root) {
-      let item = dict[k];
-      return item.target === name;
-    }
-
-    return false;
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
-
-  return key;
 }
 
 module.exports = base.task();
