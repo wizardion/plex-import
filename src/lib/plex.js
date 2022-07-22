@@ -285,7 +285,7 @@ const base = {
           params += `&tag[${i}].tag.tag=${tag}`;
         }
   
-        await base.client.putQuery((`/library/sections/${file.section.key}/all?${params}`));
+        await base.client.putQuery((`/library/sections/${file.section.key}/all?${encodeURI(params)}`));
         await sleep(50);
 
         let favorite = media.favorite? '10' : '-1';
