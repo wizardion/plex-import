@@ -46,7 +46,7 @@ base.exec = async function exec() {
     db.saveDB(data);
   }
 
-  return false;
+  return changed;
 };
 
 function getMediaDetails(media) {
