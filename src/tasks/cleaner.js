@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-const db = require('../db');
+const db = require('../lib/db');
 const path = require('path');
 const base = require('./base');
 const logger = require('../logger');
@@ -11,8 +11,8 @@ const yellow = '\x1b[33m%s\x1b[0m';
 base.name = 'clean-files';
 base.exec = async function exec() {
   const data = [
-    {file: 'plex-lost', locations: [base.user.locations.originals, base.user.locations.photoprism]},
-    {file: 'lost', locations: [base.user.locations.photoprism, base.user.locations.plex.host]},
+    {file: 'plex-lost', locations: [base.user.locations.originals, base.user.locations.photoprism.sidecar]},
+    {file: 'lost', locations: [base.user.locations.photoprism.sidecar, base.user.locations.plex.host]},
   ];
 
   data.forEach(item => {

@@ -8,13 +8,17 @@ const _config_ = {
     locations: {
       tmp: null,
       originals: null,
-      photoprism: null,
+      photoprism: {sidecar: null, username:null, password: null, host: null},
       plex: {host: null,container: null},
     },
     force: {
       plex: false,
       prism: false,
     },
+  },
+  locationTypes: {
+    ORIGINAL: 1,
+    PHOTOPRISM: 2,
   },
   name: null,
   init: () => {},

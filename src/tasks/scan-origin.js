@@ -1,71 +1,67 @@
 'use strict';
 
 const fs = require('fs');
-const db = require('../db');
+const db = require('../lib/db');
 const path = require('path');
 const base = require('./base');
 const logger = require('../logger');
-const yellow = '\x1b[33m%s\x1b[0m';
 
 
-base.name = 'origin-scan';
+base.name = 'scan-origin';
 base.exec = async function exec() {
   const data = db.init(base.user.locations.tmp);
-  const originals = scanDirectory(base.user.locations.originals, {old: data, new: {}, rest: {}, update: {}});
-  const newCount = Object.keys(originals.new).length;
-  const updatedCount = Object.keys(originals.update).length;
-  const lostCount = Object.keys(originals.update).length;
+  const originals = scanDirectory(base.user.locations.originals, {old: data, new: {}, rest: {}, updated: {}});
   var result = false;
 
   db.save(Object.assign(originals.rest));
 
-  if (lostCount) {
-    db.save(originals.old, 'lost');
+  if (originals.lost.count) {
+    db.save(originals.lost.data, 'lost');
 
-    logger.log(base.name, `found lost files: ${lostCount}`);
+    logger.log(base.name, `found lost files: ${originals.lost.count}`);
     result = true;
   }
 
-  if (newCount || updatedCount) {
-    cleanUpUpdated(originals.update);
-    db.save(Object.assign(originals.new, originals.update), 'process');
+  if (originals.new.count || originals.updated.count) {
+    db.save(Object.assign(originals.new.data, originals.updated.data), 'session');
 
-    if (newCount) {
-      logger.log(base.name, `found new files: ${newCount}`);
+    if (originals.new.count) {
+      logger.log(base.name, `found new files: ${originals.new.count}`);
     }
 
-    if (updatedCount) {
-      logger.log(base.name, `found updated files: ${updatedCount}`);
+    if (originals.updated.count) {
+      logger.log(base.name, `found updated files: ${originals.updated.count}`);
     }
 
-    await refreshPlex();
     result = true;
   }
 
   return result;
 };
 
-function scanDirectory(location, dict, root='.') {
+function scanDirectory(location, dict, root='') {
   const dirname = path.resolve(location, root);
   const files = fs.readdirSync(dirname, {withFileTypes: true}).filter(f => f.name.match(/^[^.]/));
 
   files.forEach(file => {
     if (file.isDirectory()) {
-      return scanDirectory(location, dict, `${root}/${file.name}`);
+      return scanDirectory(location, dict, `${root}${file.name}/`);
     }
 
     if (file.isFile()) {
-      let key = `${root}/${file.name}`;
-      let item = dict.old[key];
+      let key = `${root}${file.name}`;
+      // let key = `${root}${path.basename(file.name, path.extname(file.name))}`;
       let stats = loadStats(path.resolve(base.user.locations.originals, key));
+      let item = dict.old[key];
 
       if (!item) {
-        return (dict.new[key] = stats);
+        return (dict.new[key] = {mtime: stats.mtime, files: {[key]: true}});
       }
 
       if (!equals(new Date(item.mtime), new Date(stats.mtime))) {
-        dict.update[key] = stats;
+        dict.updated[key].mtime = stats.mtime;
       } else {
+        // TODO check for deep copies
         dict.rest[key] = Object.assign({}, dict.old[key]);
       }
       
@@ -73,7 +69,21 @@ function scanDirectory(location, dict, root='.') {
     }
   });
 
-  return root !== '.'? null : dict;
+  return root !== ''? null : {
+    rest: dict.rest,
+    lost: {
+      count: Object.keys(dict.old).length,
+      data: dict.old
+    },
+    new: {
+      count: Object.keys(dict.new).length,
+      data: dict.new
+    },
+    updated: {
+      count: Object.keys(dict.updated).length,
+      data: dict.updated
+    }
+  };
 }
 
 function loadStats(filepath) {
@@ -81,7 +91,6 @@ function loadStats(filepath) {
 
   return {
     mtime: new Date(stats.mtime).getTime(),
-    processed: null
   };
 }
 
@@ -102,35 +111,6 @@ function equals(first = new Date(), second = new Date()) {
   //   console.log(yellow, t, 'item: ', taken, '; stats: ', modified);
   // }
   return first.toLocaleString() === second.toLocaleString();
-}
-
-function getTargetPath(key, source) {
-  let directory = base.user.locations.plex.host;
-  return path.resolve(directory, path.dirname(key), path.basename(key, path.extname(key)) + path.extname(source));
-}
-
-function cleanUpUpdated(files) {
-  Object.keys(files).forEach(key => {
-    let jpg = path.resolve(base.user.locations.photoprism, `${key}.jpg`);
-    let jpeg = path.resolve(base.user.locations.photoprism, `${key}.jpeg`);
-    let source = fs.existsSync(jpg)? jpg : fs.existsSync(jpeg)? jpeg : null;
-    let target = getTargetPath(key, source || key);
-
-    if (source) {
-      fs.rmSync(source);
-    }
-
-    if (fs.existsSync(target)) {
-      fs.rmSync(target);
-    }
-  });
-}
-
-async function refreshPlex() {
-  // let client = plex.init(base.user.host, base.user.token, base.user.locations.plex.host);
-
-  // await client.refresh(base.user.token);
-  // await client.wait(base.user.token);
 }
 
 module.exports = base.task();

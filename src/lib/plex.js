@@ -2,7 +2,7 @@
 
 const PlexAPI = require('plex-api');
 const path = require('path');
-const logger = require('./logger');
+const logger = require('../logger');
 
 const yellow = '\x1b[33m%s\x1b[0m';
 const _binname_ = 'Trash';
@@ -56,10 +56,10 @@ function formateDate(d) {
 const base = {
   client: null,
   path: null,
-  getDirectories: () => {
+  getDirectories: (namepath) => {
     return new Promise((resolve, reject) => {
       base.client.find('/library/sections', {type: 'photo'}).then((response) => {
-        resolve(response.filter(d => !!d.Location.find(l => l.path === base.path)));
+        resolve(namepath? response.filter(d => !!d.Location.find(l => l.path === namepath)) : response);
       }, reject);
     });
   },
@@ -137,8 +137,8 @@ const base = {
           _machineIdentifier_ = data.machineIdentifier;
         }
 
-        const uri = `server://${_machineIdentifier_}/com.plexapp.plugins.library${item}`;
-        const response = await base.client.putQuery(encodeURI(`/playlists/${key}/items?uri=${uri}`));
+        const uri = `server://${_machineIdentifier_}/com.plexapp.plugins.library${encodeURIComponent(item)}`;
+        const response = await base.client.putQuery(`/playlists/${key}/items?uri=${uri}`);
 
         resolve(response);
       } catch (error) {
@@ -171,13 +171,11 @@ const base = {
         for (let i = 0; i < directories.length; i++) {
           const directory = directories[i];
   
-          if (directory.type === 'photo') {
-            await base.client.perform(`/library/sections/${directory.key}/refresh?force=1`);
-            await base.wait();
-            await base.client.perform(`/library/sections/${directory.key}/emptyTrash`);
-            await base.client.perform(`/library/optimize`);
-            await base.client.perform(`/library/clean/bundles?async=1`);
-          }
+          await base.client.perform(`/library/sections/${directory.key}/refresh?force=1`);
+          await base.wait();
+          await base.client.perform(`/library/sections/${directory.key}/emptyTrash`);
+          await base.client.perform(`/library/optimize`);
+          await base.client.perform(`/library/clean/bundles?async=1`);
         }
   
         resolve();
@@ -212,7 +210,7 @@ const base = {
   find: (filepath) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const directories = await base.getDirectories();
+        const directories = await base.getDirectories(base.path);
   
         for (let index = 0; index < directories.length; index++) {
           const directory = directories[index];
@@ -232,15 +230,19 @@ const base = {
                 const container = parts[k];
   
                 if (filepath === container.file) {
-                  let key = container.file.replace(location.path, '.');
+                  await sleep(50);
+                  const r = await base.client.query(`/library/metadata/${data.ratingKey}`);
+                  const details = (r && r.MediaContainer && r.MediaContainer.Metadata || []).shift();
   
                   return resolve({
                     id: data.ratingKey,
-                    path: key,
+                    file: path.relative(location.path, container.file),
                     key: data.key,
                     type: data.type,
                     title: data.title,
                     summary: data.summary,
+                    favorite: details.userRating? true : false,
+                    tags: details.Tag && details.Tag.length? details.Tag.map(t => ({id: t.id, tag: t.tag})) : null,
                     section: {
                       key: directory.key
                     }
@@ -257,31 +259,6 @@ const base = {
       }
     });
   },
-  tagMedia: (tags) => {
-    const files = Object.keys(tags).map(k => path.resolve(base.path, k));
-
-    return new Promise(async (resolve, reject) => {
-      try {
-        for (let i = 0; i < files.length; i++) {
-          await sleep(500);
-          const item = await base.find(files[i]);
-
-          if (item) {
-            await sleep(500);
-            await base.update(item, tags[item.path]);
-            logger.log(__name, `tagged: ${i} - ${item.path} of total: ${files.length}`);
-          } else {
-            logger.error(__name, `NO FILE: ${files[i]}`);
-          }
-        }
-
-        resolve();
-      } catch (error) {
-        console.log('er', error);
-        reject(error);
-      }
-    });
-  },
   update: (file, media) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -289,7 +266,7 @@ const base = {
         params += `&originallyAvailableAt.value=${formateDate(media.taken)}&originallyAvailableAt.locked=1`;
   
         await base.client.putQuery(encodeURI(`/library/sections/${file.section.key}/all?${params}`));
-        await sleep(100);
+        await sleep(50);
   
         params = `type=${__types[file.type]}&id=${file.id}`;
   
@@ -299,7 +276,12 @@ const base = {
           params += `&tag[${i}].tag.tag=${tag}`;
         }
   
-        await base.client.putQuery(encodeURI(`/library/sections/${file.section.key}/all?${params}`));
+        await base.client.putQuery((`/library/sections/${file.section.key}/all?${params}`));
+        await sleep(50);
+
+        let favorite = media.favorite? '10' : '-1';
+        await base.client.putQuery(`/:/rate?key=${file.id}&identifier=com.plexapp.plugins.library&rating=${favorite}`);
+
         resolve();
       } catch (error) {
         reject(error);
@@ -308,12 +290,12 @@ const base = {
   },
 };
 
-function init(host, token, plexpath) {
+function init(host, token, location) {
   if (!token) {
     throw Error('Token is required!');
   }
 
-  base.path = plexpath;
+  base.path = location;
   base.client = getClient(host, token);
   return base;
 }
